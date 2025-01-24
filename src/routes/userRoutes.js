@@ -1,12 +1,9 @@
-const express = require('express');
+import express from 'express';
+import { getUsers, getUser } from '../controllers/userController.js';
+
 const router = express.Router();
-const userController = require('../controllers/userController');
-const { authMiddleware } = require('../middleware/auth');
 
-router.post('/register', userController.registerUser);
-router.post('/login', userController.loginUser);
-router.post('/google-login', userController.googleLogin);
-router.get('/profile', authMiddleware, userController.getUserProfile);
-router.patch('/profile', authMiddleware, userController.updateUserProfile);
+router.get('/', getUsers); // Route to get all users
+router.get('/:id', getUser); // Route to get user by ID
 
-module.exports = router;
+export default router;

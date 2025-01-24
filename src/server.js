@@ -1,54 +1,52 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const logger = require('./utils/logger');
-const { sequelize, testConnection } = require('./config/database');
-const User = require('./models/User');
-const Domain = require('./models/Domain');
+import express from 'express';
+import session from 'express-session';
+import passport from './middlewares/authMiddleware.js';
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import sequelize from './config/config.js';
+import swaggerJsDoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+import dotenv from 'dotenv';
+import { SECRET_KEY } from './environments/auth_env.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(helmet());
-app.use(cors());
+// Swagger setup
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'User Authentication API',
+      version: '1.0.0',
+      description: 'API documentation for user authentication',
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+      },
+    ],
+  },
+  apis: ['./src/routes/*.js'],
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(session({ secret: SECRET_KEY, resave: false, saveUninitialized: true }));
+app.use(passport.initialize());
+app.use(passport.session());
 
-// Routes
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/domains', require('./routes/domainRoutes'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
-// Database Relations
-User.hasMany(Domain, { foreignKey: 'userId', as: 'domains' });
-Domain.belongsTo(User, { foreignKey: 'userId' });
-
-// Global error handler
-app.use((err, req, res, next) => {
-  logger.error(err.stack);
-  res.status(500).json({ 
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined 
+sequelize.sync().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port http://localhost:${PORT}`);
   });
+}).catch(err => {
+  console.error('Unable to connect to the database:', err);
 });
-
-// Start server
-async function startServer() {
-  try {
-    // Test database connection
-    await testConnection();
-
-    // Sync models
-    await sequelize.sync({ alter: true });
-
-    app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
-  }
-}
-
-startServer();
