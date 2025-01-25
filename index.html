@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Google Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div id="g_id_onload"
+         data-client_id="263866160137-jpimr6gt4fnga2tbl2he27t44jnlmsfi.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" 
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="signin_with"
+         data-size="large"
+         data-logo_alignment="left">
+    </div>
+
+    <script>
+        function handleCredentialResponse(response) {
+            // Backend ga token yuborish
+            fetch('/auth/google', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    token: response.credential
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Token va user ma'lumotlarini saqlash
+                localStorage.setItem('token', data.token);
+                window.location.href = '/dashboard';
+            })
+            .catch(error => {
+                console.error('Login xatosi:', error);
+            });
+        }
+    </script>
+</body>
+</html>
