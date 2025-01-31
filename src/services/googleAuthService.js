@@ -33,29 +33,31 @@ class GoogleAuthService {
       
       console.log('Google Token Payload:', {
         email: payload['email'],
-        sub: payload['sub']
       });
 
-      return {
+      // Construct complete profile object
+      const googleProfile = {
         googleId: payload['sub'],
         email: payload['email'],
         firstName: payload['given_name'] || '',
         lastName: payload['family_name'] || '',
         avatarUrl: payload['picture'] || ''
       };
+
+      return googleProfile;
     } catch (error) {
-      console.error('Google token verification failed:', {
-        message: error.message,
-        stack: error.stack
-      });
-      return null;
+      console.error('Token verification error:', error);
+      throw error;
     }
   }
 
   static async findOrCreateUser(googleProfile) {
     console.log('Finding or Creating User:', { 
       email: googleProfile.email,
-      googleId: googleProfile.googleId 
+      googleId: googleProfile.googleId,
+      firstName: googleProfile.firstName,
+      lastName: googleProfile.lastName,
+      avatarUrl: googleProfile.avatarUrl
     });
 
     try {
@@ -63,7 +65,12 @@ class GoogleAuthService {
 
       if (!email) {
         console.error('Email is required', { profile: googleProfile });
-        throw new Error('Email is required');
+        throw new Error('Email is required for user creation');
+      }
+
+      // Validate required fields
+      if (!firstName) {
+        console.warn('First name is missing, using a default');
       }
 
       // First, check if user exists
@@ -71,10 +78,21 @@ class GoogleAuthService {
         text: 'SELECT * FROM users WHERE email = $1',
         values: [email]
       };
-      const existingUserResult = await executeQuery(existingUserQuery);
+      
+      let existingUserResult;
+      try {
+        existingUserResult = await executeQuery(existingUserQuery.text, existingUserQuery.values);
+      } catch (queryError) {
+        console.error('Error checking existing user:', {
+          message: queryError.message,
+          code: queryError.code,
+          stack: queryError.stack
+        });
+        throw new Error(`Database query error: ${queryError.message}`);
+      }
 
       // If user exists, update their information
-      if (existingUserResult.rows.length > 0) {
+      if (existingUserResult.length > 0) {
         const updateQuery = {
           text: `
             UPDATE users 
@@ -86,7 +104,7 @@ class GoogleAuthService {
               last_enter_date = NOW(),
               is_verified = true
             WHERE email = $5
-            RETURNING *
+            RETURNING id, email, first_name, last_name, avatar_url, role
           `,
           values: [
             firstName || null,
@@ -96,32 +114,46 @@ class GoogleAuthService {
             email
           ]
         };
-        const updateResult = await executeQuery(updateQuery);
-        return updateResult.rows[0];
+        
+        try {
+          const updateResult = await executeQuery(updateQuery.text, updateQuery.values);
+          return updateResult[0];
+        } catch (updateError) {
+          console.error('Error updating existing user:', {
+            message: updateError.message,
+            code: updateError.code,
+            stack: updateError.stack
+          });
+          throw new Error(`Failed to update existing user: ${updateError.message}`);
+        }
       }
 
       // If user doesn't exist, create new user
       const createUserQuery = {
         text: `
-          INSERT INTO users (
-            email, 
-            first_name, 
-            last_name, 
-            avatar_url, 
-            google_id, 
-            role, 
-            is_verified, 
-            auth_type, 
-            created_at,
-            last_enter_date
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()
-          ) RETURNING *
+          WITH new_user AS (
+            INSERT INTO users (
+              email, 
+              first_name, 
+              last_name, 
+              avatar_url, 
+              google_id, 
+              role, 
+              is_verified, 
+              auth_type, 
+              created_at,
+              last_enter_date
+            ) VALUES (
+              $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()
+            )
+            RETURNING id, email, first_name, last_name, avatar_url, role
+          )
+          SELECT * FROM new_user
         `,
         values: [
           email,
-          firstName || null,
-          lastName || null,
+          firstName || 'Google User',  // Provide a default first name
+          lastName || '',
           avatarUrl || null,
           googleId || null,
           'user',
@@ -130,12 +162,37 @@ class GoogleAuthService {
         ]
       };
       
-      const createResult = await executeQuery(createUserQuery);
-      return createResult.rows[0];
+      console.log('Creating new user with query:', {
+        email,
+        firstName: firstName || 'Google User',
+        lastName: lastName || '',
+        avatarUrl,
+        googleId
+      });
+
+      try {
+        const createResult = await executeQuery(createUserQuery.text, createUserQuery.values);
+        
+        if (createResult.length === 0) {
+          console.error('No user created', { query: createUserQuery });
+          throw new Error('Failed to create user: No result returned');
+        }
+
+        console.log('User created successfully:', createResult[0]);
+        return createResult[0];
+      } catch (createError) {
+        console.error('Error creating new user:', {
+          message: createError.message,
+          code: createError.code,
+          stack: createError.stack
+        });
+        throw new Error(`Failed to create new user: ${createError.message}`);
+      }
     } catch (error) {
-      console.error('User find or create error:', {
+      console.error('Comprehensive user find or create error:', {
         message: error.message,
         stack: error.stack,
+        code: error.code,
         profile: googleProfile
       });
       
@@ -144,7 +201,8 @@ class GoogleAuthService {
         throw new Error('User with this email already exists');
       }
       
-      throw new Error('Failed to process Google user');
+      // Throw the original error for more context
+      throw error;
     }
   }
 

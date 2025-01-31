@@ -1,5 +1,4 @@
 import express from 'express';
-<<<<<<< HEAD
 import axios from 'axios';
 import * as GoogleAuthController from '../controllers/googleAuthController.js';
 import { 
@@ -7,14 +6,10 @@ import {
   GOOGLE_CLIENT_SECRET, 
   CLIENT_REDIRECT_URL 
 } from '../environments/auth_env.js';
-=======
-import * as GoogleAuthController from '../controllers/googleAuthController.js';
->>>>>>> 9790fa2ac53535fcdfc9600246d656f7624b617c
 
 const router = express.Router();
 
 /**
-<<<<<<< HEAD
  * Initiate Google OAuth Authorization
  * Redirects user to Google's OAuth consent screen
  */
@@ -46,8 +41,19 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const result = await GoogleAuthController.googleLogin(req, res);
-    return result;
+    // Directly call the googleLogin method and pass req and res
+    const response = await GoogleAuthController.googleLogin(req, res);
+    
+    // If the controller method returns a response, send it
+    if (response) {
+      return res.status(response.status || 200).json(response.data);
+    }
+
+    // Fallback error response
+    return res.status(500).json({ 
+      error: 'Authentication failed', 
+      details: 'Unexpected error during Google login' 
+    });
   } catch (error) {
     console.error('Google login error:', error);
     res.status(500).json({ 
@@ -101,53 +107,5 @@ router.get('/callback', async (req, res) => {
     res.status(500).redirect(`${CLIENT_REDIRECT_URL}/login/error`);
   }
 });
-=======
- * @swagger
- * /api/auth/google/login:
- *   post:
- *     summary: Authenticate with Google OAuth
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               token:
- *                 type: string
- *                 description: Google ID token
- *     responses:
- *       200:
- *         description: Successful Google authentication
- *       400:
- *         description: Authentication failed
- */
-router.post('/login', GoogleAuthController.googleLogin);
-
-/**
- * @swagger
- * /api/auth/google/callback:
- *   post:
- *     summary: Google OAuth callback endpoint
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               token:
- *                 type: string
- *                 description: Google ID token
- *     responses:
- *       302:
- *         description: Redirect to client with access token
- *       400:
- *         description: Authentication failed
- */
-router.post('/callback', GoogleAuthController.googleCallback);
->>>>>>> 9790fa2ac53535fcdfc9600246d656f7624b617c
 
 export default router;

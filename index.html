@@ -4,24 +4,77 @@
     <meta charset="UTF-8">
     <title>Google OAuth Login</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .login-container {
+            text-align: center;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #error-message {
+            color: red;
+            margin-top: 15px;
+            display: none;
+        }
+        #loading-spinner {
+            display: none;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
-    <div id="g_id_onload"
-         data-client_id="263866160137-jpimr6gt4fnga2tbl2he27t44jnlmsfi.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse"
-         data-auto_select="true">
-    </div>
-    <div class="g_id_signin" 
-         data-type="standard" 
-         data-size="large" 
-         data-theme="outline" 
-         data-text="sign_in_with" 
-         data-shape="rectangular" 
-         data-logo_alignment="left">
+    <div class="login-container">
+        <div id="g_id_onload"
+             data-client_id="263866160137-jpimr6gt4fnga2tbl2he27t44jnlmsfi.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse"
+             data-auto_select="true">
+        </div>
+        <div class="g_id_signin" 
+             data-type="standard" 
+             data-size="large" 
+             data-theme="outline" 
+             data-text="sign_in_with" 
+             data-shape="rectangular" 
+             data-logo_alignment="left">
+        </div>
+        
+        <div id="loading-spinner">
+            Loading... Please wait
+        </div>
+        <div id="error-message"></div>
     </div>
 
     <script>
+    function showLoading() {
+        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('error-message').style.display = 'none';
+    }
+
+    function hideLoading() {
+        document.getElementById('loading-spinner').style.display = 'none';
+    }
+
+    function showError(message) {
+        hideLoading();
+        const errorElement = document.getElementById('error-message');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
     function handleCredentialResponse(response) {
+        // Show loading state
+        showLoading();
+
         fetch('http://localhost:3000/api/auth/google/login', {
             method: 'POST',
             headers: {
@@ -41,16 +94,19 @@
             return res.json();
         })
         .then(data => {
-            // Tokenni saqlash va kerakli harakatlarni bajarish
+            // Store tokens and user info
             localStorage.setItem('accessToken', data.accessToken);
             localStorage.setItem('user', JSON.stringify(data.user));
-            window.location.href = '/dashboard'; // Yo'naltirish
+            
+            // Optional: Update UI to show successful login
+            hideLoading();
+            window.location.href = '/dashboard'; // Redirect to dashboard
         })
         .catch(error => {
             console.error('Authentication error:', error);
             
-            // Foydalanuvchiga xatolik haqida ma'lumot berish
-            alert(error.message || 'Login failed. Please try again.');
+            // Show error message on the page
+            showError(error.message || 'Login failed. Please try again.');
         });
     }
     </script>
