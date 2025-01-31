@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Google OAuth Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div id="g_id_onload"
+         data-client_id="263866160137-jpimr6gt4fnga2tbl2he27t44jnlmsfi.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_select="true">
+    </div>
+    <div class="g_id_signin" 
+         data-type="standard" 
+         data-size="large" 
+         data-theme="outline" 
+         data-text="sign_in_with" 
+         data-shape="rectangular" 
+         data-logo_alignment="left">
+    </div>
+
+    <script>
+    function handleCredentialResponse(response) {
+        fetch('http://localhost:3000/api/auth/google/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                token: response.credential 
+            })
+        })
+        .then(res => {
+            if (!res.ok) {
+                // Detailed error handling
+                return res.json().then(errorData => {
+                    throw new Error(errorData.details || 'Authentication failed');
+                });
+            }
+            return res.json();
+        })
+        .then(data => {
+            // Tokenni saqlash va kerakli harakatlarni bajarish
+            localStorage.setItem('accessToken', data.accessToken);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            window.location.href = '/dashboard'; // Yo'naltirish
+        })
+        .catch(error => {
+            console.error('Authentication error:', error);
+            
+            // Foydalanuvchiga xatolik haqida ma'lumot berish
+            alert(error.message || 'Login failed. Please try again.');
+        });
+    }
+    </script>
+</body>
+</html>

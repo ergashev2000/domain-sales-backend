@@ -1,28 +1,38 @@
 {
   "name": "domain-sales-backend",
   "version": "1.0.0",
-  "description": "Node.js application for handling authentication using PostgreSQL and Sequelize.",
-  "main": "server.js",
+  "description": "Domain sales platform backend",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "test": "jest",
     "build": "node src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "seed": "node src/scripts/seedDomains.js"
   },
   "dependencies": {
+    "axios": "^1.7.9",
     "bcrypt": "^5.0.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.17.1",
     "express-session": "^1.18.1",
-    "jsonwebtoken": "^8.5.1",
-    "nodemon": "^3.1.9",
+    "google-auth-library": "^9.0.0",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
     "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
-    "pg": "^8.7.1",
-    "sequelize": "^6.6.5",
+    "pg": "^8.11.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
   },
   "author": "Your Name",
   "license": "ISC"

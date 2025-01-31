@@ -1,0 +1,12 @@
+{
+    "title": "Technology Domains",
+    "description": "Premium domains for tech startups and digital innovations",
+    "slug": "tech-domains",
+    "icon": "https://example.com/icons/tech-category.svg",
+    "domain_count": 250,
+    "meta_title": "Top Technology Domain Names",
+    "meta_description": "Discover premium technology domain names for innovative brands",
+    "keywords": ["tech", "domains", "innovation", "startup"],
+    "is_active": true,
+    "sort_order": 1
+}
